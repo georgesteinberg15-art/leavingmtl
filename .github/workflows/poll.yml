@@ -1,7 +1,7 @@
 # Takes one traffic reading of every way off the island (TomTom Traffic Flow) and adds it to
-# today's file on the `data` branch. cron-job.org starts it every 15 minutes from 2:30pm to
-# 8:15pm Montreal time (GitHub's own timer is too unreliable for this). The free TomTom plan
-# allows 20,000 readings a month; this uses about 24 runs x 13 probes a day.
+# today's file on the `data` branch. cron-job.org starts it every 15 minutes from 2pm to
+# 8:45pm Montreal time (GitHub's own timer is too unreliable for this). The free TomTom plan
+# allows 20,000 readings a month; this uses about 28 runs x 18 probes a day (~15,600 a month).
 name: Traffic reading
 
 on:
