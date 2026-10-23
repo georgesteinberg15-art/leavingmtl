@@ -1,5 +1,5 @@
-# Posts the night's video to @leavingmtl at about 9:30pm Montreal time,
-# an hour after the nightly job makes it — time to look at /tonight/ first.
+# Posts the night's video to @leavingmtl at about 8:35pm Montreal time (cron-job.org, backup 9:05pm),
+# ten minutes after the nightly job makes it. GitHub's own timers below are a late backup.
 # To skip a night: pause this workflow in the GitHub app (Actions → Post to Instagram → Disable).
 #
 # The Instagram token expires after 60 days, so it's renewed weekly. It lives encrypted in
