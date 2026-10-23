@@ -14,7 +14,7 @@ import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { execFileSync, spawn } from 'node:child_process';
 import { extname, join, resolve } from 'node:path';
 
-const VOICE_ID = process.env.VOICE_ID || 'IPgYtHTNLjC7Bq7IPHrm'; // Alexandre Boutin (Québec French)
+const VOICE_ID = process.env.VOICE_ID || '93nuHbke4dTER9x2pDwE'; // Adam, warm and friendly (Québec French)
 const VOICE_LEAD = 0.4, VOICE_TAIL = 0.8; // seconds of quiet before / after the voice
 const FPS = 30, BATCH = 15;
 
