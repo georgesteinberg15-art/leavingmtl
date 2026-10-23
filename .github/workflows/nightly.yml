@@ -22,6 +22,10 @@ on:
         description: 'Only make it if that day has no video yet (used by the cron-job.org timer)'
         type: boolean
         default: false
+      preview:
+        description: 'Test only: make the video and attach it to the run, without publishing it'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -53,7 +57,8 @@ jobs:
           case "${{ github.event_name }}" in
             workflow_dispatch)
               MAKE=true; DATE="${{ inputs.date }}"; DATE=${DATE:-$NY_DATE}
-              if [ "${{ inputs.if_missing }}" = true ] && [ "$LIVE_DATE" = "$DATE" ]; then MAKE=false; DEPLOY=false; fi ;;
+              if [ "${{ inputs.if_missing }}" = true ] && [ "$LIVE_DATE" = "$DATE" ]; then MAKE=false; DEPLOY=false; fi
+              if [ "${{ inputs.preview }}" = true ]; then DEPLOY=false; fi ;;
             schedule)
               if [ "$NY_HOUR" -ge 20 ] && [ "$LIVE_DATE" != "$NY_DATE" ]; then MAKE=true; DATE=$NY_DATE; else DEPLOY=false; fi ;;
           esac
@@ -105,6 +110,13 @@ jobs:
         run: |
           node scripts/nightly.mjs --date "${{ steps.plan.outputs.date }}" --out _site/tonight
           rm -f _site/tonight/voice.mp3
+
+      - name: Attach the test video to this run
+        if: inputs.preview
+        uses: actions/upload-artifact@v4
+        with:
+          name: preview
+          path: _site/tonight
 
       - uses: actions/upload-pages-artifact@v3
         if: steps.plan.outputs.deploy == 'true'
