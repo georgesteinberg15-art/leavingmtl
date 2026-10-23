@@ -291,7 +291,7 @@ function buildBulletin() {
     lines.push(`Pire sortie ${label} : <b>${worst.c.name}</b>, ${fmtDelay(worst.peak.delay)} à ${fmtTime(worst.peak.slot * SLOT_MIN)}.`);
   } else {
     lines.push(worst.peak.delay >= 60
-      ? `Ça roule bien ${label} : jamais plus de ${fmtDelay(worst.peak.delay).slice(1)} de retard pour quitter l'île.`
+      ? `Ça roule bien ${label} : jamais plus ${Math.round(worst.peak.delay / 60) === 1 ? "d'une minute" : `de ${fmtDelay(worst.peak.delay).slice(1)}`} de retard pour quitter l'île.`
       : `Ça roule bien ${label} : aucun retard notable pour quitter l'île.`);
   }
   if (rows.length > 1 && worst.peak.delay >= 120) {
