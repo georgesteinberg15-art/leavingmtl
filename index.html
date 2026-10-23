@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Leaving MTL</title>
+  <meta name="description" content="Sortir de Montréal ce soir : la circulation en direct sur les ponts, le tunnel et les autoroutes qui quittent l'île.">
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="map"></div>
+
+  <aside id="panel">
+    <header>
+      <h1>Leaving <span>MTL</span></h1>
+      <p class="sub" id="dateline">Chargement de la circulation…</p>
+    </header>
+
+    <section class="time">
+      <div class="time-row">
+        <button id="play" title="Revoir la journée">▶</button>
+        <input id="slider" type="range" min="0" max="0" value="0">
+        <button id="live" class="on">DIRECT</button>
+      </div>
+      <div class="time-label" id="timeLabel">—</div>
+      <div class="legend">
+        <span><i style="background:var(--g)"></i>fluide</span>
+        <span><i style="background:var(--y)"></i>lent</span>
+        <span><i style="background:var(--r)"></i>congestionné</span>
+        <span><i style="background:var(--rr)"></i>arrêté</span>
+      </div>
+    </section>
+
+    <section>
+      <h2>Vers la Rive-Sud</h2>
+      <ul class="crossings" id="sud"></ul>
+      <h2>Vers Laval et la Rive-Nord</h2>
+      <ul class="crossings" id="nord"></ul>
+      <h2>Vers l'ouest</h2>
+      <ul class="crossings" id="ouest"></ul>
+    </section>
+
+    <section class="bulletin">
+      <h2>Le bulletin du soir</h2>
+      <div id="bulletin">…</div>
+      <button id="makeVideo" class="big">Faire la vidéo Instagram</button>
+      <button id="makePost" class="big ghost">Faire l'image Instagram</button>
+    </section>
+
+    <footer>Données de circulation © TomTom, relevées toutes les 15 minutes de 14 h 30 à 20 h 15. Retard = temps de parcours comparé à la même route sans trafic.</footer>
+  </aside>
+
+  <div id="postModal" hidden>
+    <div class="modal-inner">
+      <img id="postImg" alt="Aperçu de la publication Instagram">
+      <video id="postVideo" controls loop muted playsinline hidden></video>
+      <div class="modal-actions">
+        <a id="postDownload" class="big" download="leaving-mtl.png">Télécharger l'image</a>
+        <button id="copyCaption" class="big ghost">Copier la légende</button>
+        <button id="closeModal" class="big ghost">Fermer</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

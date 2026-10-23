@@ -1,0 +1,33 @@
+{
+  "_note": "Ways off the island of Montreal. Each probe is a point on the outbound carriageway; TomTom returns the road segment there. 'say' is how the narrator says it. mode 'sum' = probes in a row (add delays), 'avg' = parallel roads.",
+  "crossings": [
+    {"id": "champlain", "group": "sud", "name": "Pont Champlain", "say": "le pont Champlain", "to": "A-10 / A-15 → Brossard", "mode": "sum",
+      "probes": [{"id": "champlain-app", "lat": 45.4706, "lon": -73.548}, {"id": "champlain", "lat": 45.4691, "lon": -73.517}] },
+    {"id": "jacques-cartier", "group": "sud", "name": "Pont Jacques-Cartier", "say": "le pont Jacques-Cartier", "to": "→ Longueuil", "mode": "sum",
+      "probes": [{"id": "jacques-cartier", "lat": 45.521, "lon": -73.529}] },
+    {"id": "victoria", "group": "sud", "name": "Pont Victoria", "say": "le pont Victoria", "to": "→ Saint-Lambert", "mode": "sum",
+      "probes": [{"id": "victoria", "lat": 45.4895, "lon": -73.5345}] },
+    {"id": "lafontaine", "group": "sud", "name": "Tunnel La Fontaine", "say": "le tunnel La Fontaine", "to": "A-25 → Longueuil / Boucherville", "mode": "sum",
+      "probes": [{"id": "lafontaine", "lat": 45.58365, "lon": -73.50045}] },
+    {"id": "mercier", "group": "sud", "name": "Pont Mercier", "say": "le pont Mercier", "to": "R-138 → Châteauguay", "mode": "sum",
+      "probes": [{"id": "mercier", "lat": 45.4153, "lon": -73.6563}] },
+
+    {"id": "a13", "group": "nord", "name": "Pont Louis-Bisson", "say": "la 13 vers Laval", "to": "A-13 → Laval", "mode": "sum",
+      "probes": [{"id": "a13", "lat": 45.5118, "lon": -73.7648}] },
+    {"id": "a15", "group": "nord", "name": "Pont Médéric-Martin", "say": "la 15 vers Laval", "to": "A-15 → Laval", "mode": "sum",
+      "probes": [{"id": "a15-app", "lat": 45.53101, "lon": -73.69283}, {"id": "a15", "lat": 45.5404, "lon": -73.7119}] },
+    {"id": "a19", "group": "nord", "name": "Pont Papineau-Leblanc", "say": "le pont Papineau-Leblanc", "to": "A-19 → Laval", "mode": "sum",
+      "probes": [{"id": "a19", "lat": 45.5762, "lon": -73.6668}] },
+    {"id": "pie-ix", "group": "nord", "name": "Pont Pie-IX", "say": "le pont Pie-Neuf", "to": "R-125 → Laval", "mode": "sum",
+      "probes": [{"id": "pie-ix-app", "lat": 45.59, "lon": -73.635}, {"id": "pie-ix", "lat": 45.5992, "lon": -73.6468}] },
+    {"id": "a25", "group": "nord", "name": "Pont Olivier-Charbonneau", "say": "la 25 vers Laval", "to": "A-25 → Laval", "mode": "sum",
+      "probes": [{"id": "a25-app", "lat": 45.61684, "lon": -73.59761}, {"id": "a25", "lat": 45.6349, "lon": -73.6172}] },
+    {"id": "a40e", "group": "nord", "name": "A-40 est", "say": "la 40 vers Repentigny", "to": "Pont Charles-De Gaulle → Repentigny", "mode": "sum",
+      "probes": [{"id": "a40e", "lat": 45.7023, "lon": -73.5087}] },
+
+    {"id": "a40o", "group": "ouest", "name": "A-40 ouest", "say": "la 40 vers Vaudreuil", "to": "Pont de l'Île-aux-Tourtes → Vaudreuil", "mode": "sum",
+      "probes": [{"id": "a40o", "lat": 45.4207, "lon": -73.98}] },
+    {"id": "a20o", "group": "ouest", "name": "A-20 ouest", "say": "la 20 vers l'Île-Perrot", "to": "Pont Galipeault → Île-Perrot", "mode": "sum",
+      "probes": [{"id": "a20o-app", "lat": 45.409, "lon": -73.945}, {"id": "a20o", "lat": 45.404, "lon": -73.9552}] }
+  ]
+}

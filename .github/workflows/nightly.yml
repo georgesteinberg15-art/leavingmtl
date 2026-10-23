@@ -1,0 +1,123 @@
+# Builds and deploys the site. Every evening it also makes the night's Instagram video
+# (3–8pm replay + ElevenLabs voiceover in French) and publishes it at /tonight/.
+name: Site + nightly video
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    # From 8:25pm Montreal (EDT or EST) with backup tries every 30 min, since GitHub often starts
+    # scheduled runs late; runs before 8pm Montreal or after tonight's video exists skip themselves.
+    - cron: '25 0 * * *'
+    - cron: '55 0 * * *'
+    - cron: '25 1 * * *'
+    - cron: '55 1 * * *'
+    - cron: '25 2 * * *'
+  workflow_dispatch:
+    inputs:
+      date:
+        description: 'Day to make a video for (YYYY-MM-DD). Blank = today in Montreal.'
+        required: false
+      if_missing:
+        description: 'Only make it if that day has no video yet (used by the cron-job.org timer)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  SITE: https://georgesteinberg15-art.github.io/leavingmtl
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      deploy: ${{ steps.plan.outputs.deploy }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Decide what to do
+        id: plan
+        run: |
+          NY_DATE=$(TZ=America/Toronto date +%F)
+          NY_HOUR=$(TZ=America/Toronto date +%-H)
+          LIVE_DATE=$(curl -fsS "$SITE/tonight/meta.json" | jq -r .date || echo none)
+          MAKE=false; DEPLOY=true; DATE=""
+          case "${{ github.event_name }}" in
+            workflow_dispatch)
+              MAKE=true; DATE="${{ inputs.date }}"; DATE=${DATE:-$NY_DATE}
+              if [ "${{ inputs.if_missing }}" = true ] && [ "$LIVE_DATE" = "$DATE" ]; then MAKE=false; DEPLOY=false; fi ;;
+            schedule)
+              if [ "$NY_HOUR" -ge 20 ] && [ "$LIVE_DATE" != "$NY_DATE" ]; then MAKE=true; DATE=$NY_DATE; else DEPLOY=false; fi ;;
+          esac
+          echo "make=$MAKE" >> "$GITHUB_OUTPUT"
+          echo "deploy=$DEPLOY" >> "$GITHUB_OUTPUT"
+          echo "date=$DATE" >> "$GITHUB_OUTPUT"
+          echo "Montreal $NY_DATE ${NY_HOUR}h, live video: $LIVE_DATE -> make=$MAKE date=$DATE deploy=$DEPLOY"
+
+      - name: Assemble site
+        if: steps.plan.outputs.deploy == 'true'
+        run: |
+          mkdir -p _site/tonight
+          cp index.html app.js style.css crossings.json README.md _site/
+          cp tonight.html _site/tonight/index.html
+
+      - name: Keep the current video (no new one this run)
+        if: steps.plan.outputs.deploy == 'true' && steps.plan.outputs.make != 'true'
+        run: |
+          cd _site/tonight
+          if curl -fsS "$SITE/tonight/meta.json" -o meta.json; then
+            curl -fsS "$SITE/tonight/caption.txt" -o caption.txt || true
+            curl -fsS "$SITE/tonight/$(jq -r .video meta.json)" -o "$(jq -r .video meta.json)" || true
+          fi
+
+      - uses: actions/setup-node@v4
+        if: steps.plan.outputs.make == 'true'
+        with:
+          node-version: 20
+
+      - name: Install browser + ffmpeg
+        if: steps.plan.outputs.make == 'true'
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+          sudo apt-get install -y ffmpeg >/dev/null
+
+      - name: Get the day's traffic readings
+        if: steps.plan.outputs.make == 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: data
+          path: data
+
+      - name: Make the video
+        if: steps.plan.outputs.make == 'true'
+        env:
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          VOICE_ID: ${{ vars.VOICE_ID }}
+        run: |
+          node scripts/nightly.mjs --date "${{ steps.plan.outputs.date }}" --out _site/tonight
+          rm -f _site/tonight/voice.mp3
+
+      - uses: actions/upload-pages-artifact@v3
+        if: steps.plan.outputs.deploy == 'true'
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    if: needs.build.outputs.deploy == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

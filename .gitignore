@@ -1,0 +1,7 @@
+videos/
+node_modules/
+tonight/
+_site/
+.DS_Store
+.env
+data/

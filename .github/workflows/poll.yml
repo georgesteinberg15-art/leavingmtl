@@ -1,0 +1,46 @@
+# Takes one traffic reading of every way off the island (TomTom Traffic Flow) and adds it to
+# today's file on the `data` branch. cron-job.org starts it every 15 minutes from 2:30pm to
+# 8:15pm Montreal time (GitHub's own timer is too unreliable for this). The free TomTom plan
+# allows 20,000 readings a month; this uses about 24 runs x 13 probes a day.
+name: Traffic reading
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: poll
+  cancel-in-progress: false
+
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/checkout@v4
+        with:
+          ref: data
+          path: data
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Read traffic
+        env:
+          TOMTOM_KEY: ${{ secrets.TOMTOM_KEY }}
+        run: node scripts/poll.mjs --data data
+
+      - name: Save
+        run: |
+          cd data
+          git config user.name "leavingmtl-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet && exit 0
+          git commit -qm "Reading $(TZ=America/Toronto date '+%F %H:%M')"
+          for i in 1 2 3; do git push -q && break; git pull -q --rebase; done

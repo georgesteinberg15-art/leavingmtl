@@ -1,0 +1,101 @@
+# Posts the night's video to @leavingmtl at about 9:30pm Montreal time,
+# an hour after the nightly job makes it — time to look at /tonight/ first.
+# To skip a night: pause this workflow in the GitHub app (Actions → Post to Instagram → Disable).
+#
+# The Instagram token expires after 60 days, so it's renewed weekly. It lives encrypted in
+# state/ig-token.enc (key: secret IG_TOKEN_KEY) because a workflow can't rewrite its own secrets.
+name: Post to Instagram
+
+on:
+  schedule:
+    # From 9:35pm Montreal (EDT or EST) with backup tries every 30 min — GitHub often starts
+    # scheduled runs late or drops them. Runs outside 9–11pm Montreal, or after a post, skip themselves.
+    - cron: '35 1 * * *'
+    - cron: '5,35 2,3 * * *'
+    - cron: '5 4 * * *'
+  workflow_dispatch:
+    inputs:
+      date:
+        description: 'Night to post (YYYY-MM-DD). Blank = today in Montreal.'
+        required: false
+      dry_run:
+        description: 'Check everything but do not post'
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: instagram
+  cancel-in-progress: false
+
+env:
+  SITE: https://georgesteinberg15-art.github.io/leavingmtl
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Decide whether to post
+        id: plan
+        run: |
+          NY_DATE=$(TZ=America/Toronto date +%F)
+          NY_HOUR=$(TZ=America/Toronto date +%-H)
+          LAST=$(cat state/last-posted.txt 2>/dev/null || echo none)
+          GO=false; DATE="$NY_DATE"; DRY=""
+          if [ "${{ github.event_name }}" = workflow_dispatch ]; then
+            GO=true; DATE="${{ inputs.date }}"; DATE=${DATE:-$NY_DATE}
+            [ "${{ inputs.dry_run }}" = true ] && DRY=--dry-run
+          elif [ "$NY_HOUR" -ge 21 ] && [ "$NY_HOUR" -le 23 ] && [ "$LAST" != "$NY_DATE" ]; then
+            GO=true
+          fi
+          if [ -z "$DRY" ] && [ "$LAST" = "$DATE" ]; then echo "already posted $DATE"; GO=false; fi
+          echo "go=$GO" >> "$GITHUB_OUTPUT"; echo "date=$DATE" >> "$GITHUB_OUTPUT"; echo "dry=$DRY" >> "$GITHUB_OUTPUT"
+          echo "Montreal $NY_DATE ${NY_HOUR}h, last posted $LAST -> go=$GO date=$DATE $DRY"
+
+      - name: Unlock token (renew it if a week old)
+        if: steps.plan.outputs.go == 'true'
+        env:
+          KEY: ${{ secrets.IG_TOKEN_KEY }}
+        run: |
+          dec() { openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -md sha256 -a -A -pass env:KEY -in state/ig-token.enc; }
+          TOKEN=$(dec)
+          echo "::add-mask::$TOKEN"
+          AGE=$(( ( $(date +%s) - $(date -d "$(cat state/ig-token-renewed.txt)" +%s) ) / 86400 ))
+          if [ "$AGE" -ge 7 ]; then
+            NEW=$(curl -fsS "https://graph.instagram.com/refresh_access_token?grant_type=ig_refresh_token&access_token=$TOKEN" | jq -r .access_token)
+            if [ -n "$NEW" ] && [ "$NEW" != null ]; then
+              echo "::add-mask::$NEW"
+              TOKEN=$NEW
+              printf '%s' "$TOKEN" | openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -md sha256 -a -A -salt -pass env:KEY -out state/ig-token.enc
+              date -u +%F > state/ig-token-renewed.txt
+              echo "renewed token (was $AGE days old)"
+            else
+              echo "::warning::could not renew the Instagram token"
+            fi
+          fi
+          echo "IG_TOKEN=$TOKEN" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-node@v4
+        if: steps.plan.outputs.go == 'true'
+        with:
+          node-version: 20
+
+      - name: Post
+        if: steps.plan.outputs.go == 'true'
+        run: |
+          node scripts/post_instagram.mjs --date "${{ steps.plan.outputs.date }}" ${{ steps.plan.outputs.dry }} | tee post.log
+          if [ -z "${{ steps.plan.outputs.dry }}" ] && grep -q 'posted:' post.log; then
+            echo "${{ steps.plan.outputs.date }}" > state/last-posted.txt
+          fi
+
+      - name: Save state
+        if: always() && steps.plan.outputs.go == 'true'
+        run: |
+          git config user.name "leavingmtl-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add state/
+          git diff --cached --quiet || { git commit -m "Update posting state" && git push; }
