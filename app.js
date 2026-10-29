@@ -273,6 +273,33 @@ function render() {
 }
 
 // ---------- bulletin ----------
+// A quick nod to what else was on in the city (home games, rain, snow). The nightly job sets
+// window.CITY_EVENTS from scripts/events.mjs; the live site has none and skips this.
+// "Pas étonnant" only when the game's crowd shares one of the three slowest routes around its
+// start time; otherwise it just gets a mention.
+function eventNod(rows) {
+  const { events = [], weather = null } = window.CITY_EVENTS || {};
+  if (!rows.length) return null;
+  const bad = rows[0].peak.delay >= 180;
+  const rain = bad && weather ? { caption: `La ${weather} n'a pas aidé.`, spoken: `Et la ${weather} n'a pas aidé.` } : null;
+  const fits = (e, r) => e.near.includes(r.c.name)
+    && (e.kind !== 'game' || (r.peak.slot * SLOT_MIN >= e.start - 150 && r.peak.slot * SLOT_MIN <= e.start + 210));
+  for (const r of rows.slice(0, 3).filter((r) => r.peak.delay >= 180)) {
+    const e = events.find((e) => fits(e, r));
+    if (!e) continue;
+    if (r === rows[0]) return { onWorst: true, caption: `Pas étonnant : ${lower(e.caption)}.`, spoken: `Pas étonnant, avec ${e.spoken}.`, rain };
+    return { onWorst: false, caption: `Pas étonnant pour ${r.c.name} : ${lower(e.caption)}.`, spoken: `Pas étonnant pour ${r.c.say}, avec ${e.spoken}.`, rain };
+  }
+  if (!events.length) return rain && { onWorst: true, rain };
+  // Otherwise mention the game whose nearby routes had the roughest evening.
+  const hit = (e) => Math.max(0, ...rows.filter((r) => e.near.includes(r.c.name)).map((r) => r.peak.delay));
+  const e = [...events].sort((a, b) => hit(b) - hit(a))[0];
+  return bad
+    ? { onWorst: true, caption: `Aussi ce soir : ${lower(e.caption)}.`, spoken: `Aussi ce soir : ${e.spoken}.`, rain }
+    : { onWorst: true, caption: `Même avec ${lower(e.caption)}.`, spoken: `Même avec ${e.spoken}.`, rain };
+}
+const lower = (t) => t[0].toLowerCase() + t.slice(1);
+
 function buildBulletin() {
   const evening = state.nowSlot * SLOT_MIN >= EVENING[0];
   const [from, to] = evening ? EVENING : [0, 24 * 60];
@@ -309,8 +336,14 @@ function buildBulletin() {
       : `En ce moment (${t}) : toutes les sorties roulent.`);
   }
 
+  const nod = eventNod(rows);
+  if (nod?.rain) lines[0] += ' ' + nod.rain.caption;
+  if (nod?.caption) lines[nod.onWorst ? 0 : 1] += ' ' + nod.caption;
+
+  // Caption: the news goes first, since the feed only shows ~125 characters before "plus".
   const plain = lines.map((l) => l.replace(/<\/?b>/g, ''));
-  const caption = `${BRAND} — ${dayName}\n\n${plain.join('\n\n')}\n\nCarte en direct : lien dans la bio.\n#montreal #mtl #traficmtl #circulation #pontchamplain #rivesud #laval`;
+  const caption = `${plain.join('\n\n')}\n\nEt vous, par où êtes-vous sortis ce soir ?\n\n`
+    + `${BRAND} · ${dayName} · carte en direct : lien dans la bio\n#montreal #mtl #traficmtl #circulation #pontchamplain #rivesud #laval`;
   return { html: lines.map((l) => `<p>${l}</p>`).join(''), lines: plain, caption, dayName, rows };
 }
 
@@ -324,19 +357,24 @@ function spokenScript() {
     return mm === 0 ? `${h} heures` : `${h} heures ${mm}`;
   };
   const rows = b.rows || [];
+  const nod = eventNod(rows);
   const out = [`Quitter Montréal, ce ${weekday} soir.`];
   if (!rows.length || mins(rows[0].peak.delay) < 3) {
     const n = Math.max(1, mins(rows[0]?.peak.delay || 0));
     out.push(`Une soirée tranquille : jamais plus ${n === 1 ? "d'une minute" : `de ${n} minutes`} de retard pour quitter l'île.`);
+    if (nod?.spoken) out.push(nod.spoken);
   } else {
     const [w, ...rest] = rows;
     out.push(`La pire sortie : ${w.c.say}, avec ${mins(w.peak.delay)} minutes de plus vers ${when(w.peak.slot)}.`);
+    if (nod?.rain) out.push(nod.rain.spoken);
+    if (nod?.onWorst && nod.spoken) out.push(nod.spoken);
     const rough = rest.filter((r) => mins(r.peak.delay) >= 3).slice(0, 2);
     if (rough.length === 2) {
       out.push(`${cap(rough[0].c.say)} a atteint ${mins(rough[0].peak.delay)} minutes vers ${when(rough[0].peak.slot)}, et ${rough[1].c.say}, ${mins(rough[1].peak.delay)}.`);
     } else if (rough.length === 1) {
       out.push(`${cap(rough[0].c.say)} a atteint ${mins(rough[0].peak.delay)} minutes vers ${when(rough[0].peak.slot)}.`);
     }
+    if (nod && !nod.onWorst) out.push(nod.spoken);
     const best = rows[rows.length - 1];
     if (best !== w) out.push(`Le plus fluide ? ${cap(best.c.say)}.`);
   }

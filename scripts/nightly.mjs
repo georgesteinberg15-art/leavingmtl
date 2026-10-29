@@ -13,6 +13,7 @@ import { createServer } from 'node:http';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { execFileSync, spawn } from 'node:child_process';
 import { extname, join, resolve } from 'node:path';
+import { eventsFor } from './events.mjs';
 
 const VOICE_ID = process.env.VOICE_ID || '93nuHbke4dTER9x2pDwE'; // Adam, warm and friendly (Québec French)
 const VOICE_LEAD = 0.4, VOICE_TAIL = 0.8; // seconds of quiet before / after the voice
@@ -58,6 +59,9 @@ try {
   page.on('console', (m) => m.type() === 'error' && log('page error:', m.text()));
   await page.goto(`http://127.0.0.1:${port}/?date=${date}&data=local`);
   await page.waitForFunction(() => window.leavingReady === true, null, { timeout: 120_000 });
+  const city = await eventsFor(date);
+  log('events:', city.events.map((e) => e.caption).join('; ') || 'none', '· weather:', city.weather || 'dry');
+  await page.evaluate((c) => { window.CITY_EVENTS = c; }, city);
   info = await page.evaluate(() => {
     const b = buildBulletin();
     return { script: spokenScript(), caption: b.caption, dayName: b.dayName, ways: (b.rows || []).length };
