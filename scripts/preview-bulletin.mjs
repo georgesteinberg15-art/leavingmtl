@@ -29,8 +29,8 @@ try {
     await page.goto(`http://127.0.0.1:${server.address().port}/?date=${date}`);
     await page.waitForFunction(() => window.leavingReady === true, null, { timeout: 120_000 });
     await page.evaluate((c) => { window.CITY_EVENTS = c; }, await eventsFor(date));
-    const out = await page.evaluate(() => ({ caption: buildBulletin().caption, script: spokenScript() }));
-    console.log(`\n===== ${date}\n--- caption\n${out.caption}\n--- voiceover\n${out.script}`);
+    const out = await page.evaluate(() => ({ caption: buildBulletin().caption, script: spokenScript(), coverage: eveningCoverage() }));
+    console.log(`\n===== ${date}\ncoverage ${Math.round(out.coverage * 100)}%\n--- caption\n${out.caption}\n--- voiceover\n${out.script}`);
     await page.close();
   }
 } finally { await browser.close(); server.close(); }

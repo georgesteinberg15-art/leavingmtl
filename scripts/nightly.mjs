@@ -64,10 +64,12 @@ try {
   await page.evaluate((c) => { window.CITY_EVENTS = c; }, city);
   info = await page.evaluate(() => {
     const b = buildBulletin();
-    return { script: spokenScript(), caption: b.caption, dayName: b.dayName, ways: (b.rows || []).length };
+    return { script: spokenScript(), caption: b.caption, dayName: b.dayName, ways: (b.rows || []).length, coverage: eveningCoverage() };
   });
   // Safety check: a night with no traffic readings (feed outage) gets no video.
   if (info.ways < 3) throw new Error(`only ${info.ways} ways out had traffic data for ${date}; not making a video`);
+  // ...and one where the readings stopped partway through the evening gets none either.
+  if (info.coverage < 0.8) throw new Error(`traffic data covers only ${Math.round(info.coverage * 100)}% of 3–8pm for ${date}; not making a video`);
   await writeFile(join(outDir, 'script.txt'), info.script + '\n');
   await writeFile(join(outDir, 'caption.txt'), info.caption + '\n');
   log('script:', info.script);

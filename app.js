@@ -154,6 +154,16 @@ function crossingAt(c, slot) {
   const slowest = open.reduce((a, b) => (b.ratio < a.ratio ? b : a));
   return { ratio, delay, speed: slowest.speed, normal: slowest.normal };
 }
+// Share of the 3–8pm slots that have readings on at least half the ways off the island
+// (outage check: a night where the readings stopped partway gets no video).
+function eveningCoverage() {
+  const from = EVENING[0] / SLOT_MIN, to = EVENING[1] / SLOT_MIN;
+  let ok = 0;
+  for (let s = from; s < to; s++) {
+    if (CROSSINGS.filter((c) => crossingAt(c, s)).length >= CROSSINGS.length / 2) ok++;
+  }
+  return ok / (to - from);
+}
 function peakOf(c, fromMin, toMin) {
   let best = null;
   for (let s = Math.floor(fromMin / SLOT_MIN); s <= Math.min(state.nowSlot, Math.floor(toMin / SLOT_MIN)); s++) {
